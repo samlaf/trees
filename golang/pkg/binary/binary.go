@@ -55,5 +55,3 @@ func (t *Tree) Insert(value int) {
 		}
 	}
 }
-
-func (t )
