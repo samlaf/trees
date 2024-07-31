@@ -4,8 +4,8 @@ import (
 	"crypto/md5"
 	"testing"
 	"trees"
-	"trees/merkle"
-	"trees/smt"
+	"trees/pkg/merkle"
+	"trees/pkg/smt"
 )
 
 // Benchmarks
