@@ -1,4 +1,4 @@
-package btree
+package btree_serde
 
 import "testing"
 
