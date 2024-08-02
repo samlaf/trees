@@ -79,7 +79,7 @@ func nodeInsert(
 }
 
 func (tree *BTree) Insert(key []byte, val []byte) {
-	if tree.rootPtr == 0 {
+	if tree.rootPtr == constant.NilPagePtr {
 		// create the first node
 		root := make(bnode.BNode, constant.BTREE_PAGE_SIZE)
 		root.SetHeader(bnode.BNODE_LEAF, 2)

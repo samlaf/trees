@@ -1,6 +1,9 @@
 package constant
 
-import "trees/internal/errors"
+import (
+	"trees/internal/errors"
+	"trees/pkg/btree/types"
+)
 
 // sizes are all in bytes
 const HEADER_SIZE = 4
@@ -14,3 +17,5 @@ func init() {
 	node1max := HEADER_SIZE + 8 + 2 + 4 + BTREE_MAX_KEY_SIZE + BTREE_MAX_VAL_SIZE
 	errors.Assert(node1max <= BTREE_PAGE_SIZE, "node1max <= BTREE_PAGE_SIZE")
 }
+
+const NilPagePtr types.PagePtr = 0
