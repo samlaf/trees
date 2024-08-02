@@ -13,7 +13,7 @@ import (
 
 type BTree struct {
 	// pointer (a nonzero page number)
-	root types.PagePtr
+	rootPtr types.PagePtr
 	// interface for managing on-disk pages
 	pageManager pagemanager.PageManager
 }
@@ -79,7 +79,7 @@ func nodeInsert(
 }
 
 func (tree *BTree) Insert(key []byte, val []byte) {
-	if tree.root == 0 {
+	if tree.rootPtr == 0 {
 		// create the first node
 		root := make(bnode.BNode, constant.BTREE_PAGE_SIZE)
 		root.SetHeader(bnode.BNODE_LEAF, 2)
@@ -87,13 +87,13 @@ func (tree *BTree) Insert(key []byte, val []byte) {
 		// thus a lookup can always find a containing node.
 		root.CopyPtrAndKV(0, 0, nil, nil)
 		root.CopyPtrAndKV(1, 0, key, val)
-		tree.root = tree.pageManager.New(root)
+		tree.rootPtr = tree.pageManager.New(root)
 		return
 	}
 
-	node := treeInsert(tree, tree.pageManager.Get(tree.root), key, val)
+	node := treeInsert(tree, tree.pageManager.Get(tree.rootPtr), key, val)
 	nsplit, split := node.Split3()
-	tree.pageManager.Del(tree.root)
+	tree.pageManager.Del(tree.rootPtr)
 	if nsplit > 1 {
 		// the root was split, add a new level.
 		root := make(bnode.BNode, constant.BTREE_PAGE_SIZE)
@@ -102,9 +102,9 @@ func (tree *BTree) Insert(key []byte, val []byte) {
 			ptr, key := tree.pageManager.New(knode), knode.GetKey(0)
 			root.CopyPtrAndKV(uint16(i), ptr, key, nil)
 		}
-		tree.root = tree.pageManager.New(root)
+		tree.rootPtr = tree.pageManager.New(root)
 	} else {
-		tree.root = tree.pageManager.New(split[0])
+		tree.rootPtr = tree.pageManager.New(split[0])
 	}
 }
 
@@ -182,14 +182,14 @@ func nodeDelete(tree *BTree, node bnode.BNode, idx uint16, key []byte) bnode.BNo
 }
 
 func (tree *BTree) Delete(key []byte) {
-	if tree.root == 0 {
+	if tree.rootPtr == 0 {
 		return
 	}
-	node := treeDelete(tree, tree.pageManager.Get(tree.root), key)
+	node := treeDelete(tree, tree.pageManager.Get(tree.rootPtr), key)
 	if len(node) == 0 {
-		tree.pageManager.Del(tree.root)
-		tree.root = 0
+		tree.pageManager.Del(tree.rootPtr)
+		tree.rootPtr = 0
 	} else {
-		tree.root = tree.pageManager.New(node)
+		tree.rootPtr = tree.pageManager.New(node)
 	}
 }
