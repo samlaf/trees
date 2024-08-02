@@ -1,6 +1,7 @@
 package btree_serde
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -75,6 +76,41 @@ func TestBTreeLookup(t *testing.T) {
 				gotVal, gotFound := tt.tree.Lookup(tt.key)
 				require.Equal(t, tt.wantVal, gotVal)
 				require.Equal(t, tt.wantFound, gotFound)
+			})
+		}
+	})
+}
+
+func TestBTreeInsert(t *testing.T) {
+	// create a bunch of nodes to use in trees below
+	leafNode1To4 := NewLeafNode()
+	leafNode1To4.keys = []int{1, 2, 3, 4}
+	leafNode1To4.vals = []int{1, 2, 3, 4}
+
+	// we use trees of order 4 for testing (2-3-4 trees)
+	EmptyTree := NewBTree(4)
+	Tree1To4 := NewBTree(4)
+	Tree1To4.root = leafNode1To4
+
+	t.Run("insert", func(t *testing.T) {
+		tests := []struct {
+			name          string
+			initialTree   *BTree
+			keys          []int
+			vals          []int
+			wantFinalTree *BTree
+		}{
+			{"empty", EmptyTree, []int{1, 2, 3, 4}, []int{1, 2, 3, 4}, Tree1To4},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				require.Equal(t, len(tt.keys), len(tt.vals))
+				for i, key := range tt.keys {
+					tt.initialTree.Insert(key, tt.vals[i])
+				}
+				if !reflect.DeepEqual(tt.initialTree, tt.wantFinalTree) {
+					t.Errorf("got %+v, want %+v", tt.initialTree.root, tt.wantFinalTree.root)
+				}
 			})
 		}
 	})
