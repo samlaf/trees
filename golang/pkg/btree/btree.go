@@ -8,11 +8,12 @@ import (
 	"trees/pkg/btree/bnode"
 	"trees/pkg/btree/constant"
 	"trees/pkg/btree/pagemanager"
+	"trees/pkg/btree/types"
 )
 
 type BTree struct {
 	// pointer (a nonzero page number)
-	root uint64
+	root types.PagePtr
 	// interface for managing on-disk pages
 	pageManager pagemanager.PageManager
 }
@@ -115,7 +116,7 @@ func nodeMerge(new bnode.BNode, left bnode.BNode, right bnode.BNode)
 
 // replace 2 adjacent links with 1
 func nodeReplace2Kid(
-	new bnode.BNode, old bnode.BNode, idx uint16, ptr uint64, key []byte,
+	new bnode.BNode, old bnode.BNode, idx uint16, ptr types.PagePtr, key []byte,
 )
 
 // should the updated kid be merged with a sibling?
@@ -178,4 +179,17 @@ func nodeDelete(tree *BTree, node bnode.BNode, idx uint16, key []byte) bnode.BNo
 		nodeReplaceKidN(tree, new, node, idx, updated)
 	}
 	return new
+}
+
+func (tree *BTree) Delete(key []byte) {
+	if tree.root == 0 {
+		return
+	}
+	node := treeDelete(tree, tree.pageManager.Get(tree.root), key)
+	if len(node) == 0 {
+		tree.pageManager.Del(tree.root)
+		tree.root = 0
+	} else {
+		tree.root = tree.pageManager.New(node)
+	}
 }

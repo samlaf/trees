@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"trees/internal/errors"
 	"trees/pkg/btree/constant"
+	"trees/pkg/btree/types"
 )
 
 type BNode []byte // can be dumped to the disk
@@ -26,15 +27,15 @@ func (node BNode) SetHeader(btype uint16, nkeys uint16) {
 }
 
 // pointers
-func (node BNode) GetPtr(idx uint16) uint64 {
+func (node BNode) GetPtr(idx uint16) types.PagePtr {
 	errors.Assert(idx < node.NumKeys(), "idx < node.nkeys()")
 	pos := constant.HEADER_SIZE + 8*idx
-	return binary.LittleEndian.Uint64(node[pos:])
+	return types.PagePtr(binary.LittleEndian.Uint64(node[pos:]))
 }
-func (node BNode) SetPtr(idx uint16, val uint64) {
+func (node BNode) SetPtr(idx uint16, val types.PagePtr) {
 	errors.Assert(idx < node.NumKeys(), "idx < node.nkeys()")
 	pos := constant.HEADER_SIZE + 8*idx
-	binary.LittleEndian.PutUint64(node[pos:], val)
+	binary.LittleEndian.PutUint64(node[pos:], uint64(val))
 }
 
 // offset list
@@ -125,7 +126,7 @@ func LeafInsert(
 // copy a ptr and KV into node at index idx, overwriting any existing data
 // ptr can be set to 0 when copying into a leaf node, and val can be set to nil when writing to a node.
 // TODO: given that there are 1 more ptr than key, what if we ever need to store a new ptr at the last position (that doesnt have an index?)?
-func (n BNode) CopyPtrAndKV(idx uint16, ptr uint64, key []byte, val []byte) {
+func (n BNode) CopyPtrAndKV(idx uint16, ptr types.PagePtr, key []byte, val []byte) {
 	// ptrs
 	n.SetPtr(idx, ptr)
 	// KVs

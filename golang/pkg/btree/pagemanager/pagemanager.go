@@ -1,10 +1,12 @@
 package pagemanager
 
+import "trees/pkg/btree/types"
+
 type PageManager interface {
 	// Get a page by its number
-	Get(uint64) []byte
+	Get(types.PagePtr) []byte
 	// Allocate a new page and return its number
-	New([]byte) uint64
+	New([]byte) types.PagePtr
 	// Deallocate a page by its number
-	Del(uint64)
+	Del(types.PagePtr)
 }
