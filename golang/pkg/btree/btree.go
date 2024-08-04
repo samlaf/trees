@@ -35,7 +35,9 @@ func nodeReplaceKidN(
 // insert a KV into a node, the result might need to be split.
 // the caller is responsible for deallocating the input node
 // and splitting and allocating result nodes.
-func treeInsert(tree *BTree, bNode bnode.BNode, key []byte, val []byte) bnode.BNode {
+func (tree *BTree) insert(bNode bnode.BNode, key []byte, val []byte) bnode.BNode {
+	errors.Assert(len(key) < constant.BTREE_MAX_KEY_SIZE, "key is too big")
+	errors.Assert(len(val) < constant.BTREE_MAX_VAL_SIZE, "val is too big")
 	// the result node.
 	// it's allowed to be bigger than 1 page and will be split if so
 	new := make(bnode.BNode, 2*constant.BTREE_PAGE_SIZE)
@@ -69,7 +71,7 @@ func nodeInsert(
 ) {
 	kptr := node.GetPtr(idx)
 	// recursive insertion to the kid node
-	knode := treeInsert(tree, tree.pageManager.Get(kptr), key, val)
+	knode := tree.insert(tree.pageManager.Get(kptr), key, val)
 	// split the result
 	nsplit, split := knode.Split3()
 	// deallocate the kid node
@@ -91,9 +93,10 @@ func (tree *BTree) Insert(key []byte, val []byte) {
 		return
 	}
 
-	node := treeInsert(tree, tree.pageManager.Get(tree.rootPtr), key, val)
+	rootNode := tree.pageManager.Get(tree.rootPtr)
+	defer tree.pageManager.Del(tree.rootPtr)
+	node := tree.insert(rootNode, key, val)
 	nsplit, split := node.Split3()
-	tree.pageManager.Del(tree.rootPtr)
 	if nsplit > 1 {
 		// the root was split, add a new level.
 		root := make(bnode.BNode, constant.BTREE_PAGE_SIZE)

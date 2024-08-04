@@ -99,10 +99,12 @@ func (node BNode) LookupLE(key []byte) uint16 {
 	return found
 }
 
-// LeafUpdate is similar to leafInsert; it updates an existing key instead of inserting a duplicate key.
+// LeafUpdate copies old into new
+// and updates new's key/value at index idx
+// new should be 2*BTREE_PAGE_SIZE, in case the new key/value is too big
+// and overflows, and hence the caller should split the node.
 func LeafUpdate(
-	new BNode, old BNode, idx uint16,
-	key []byte, val []byte,
+	new BNode, old BNode, idx uint16, key []byte, val []byte,
 ) {
 	new.SetHeader(BNODE_LEAF, old.NumKeys())
 	copy(new, old)
@@ -113,7 +115,11 @@ func LeafUpdate(
 	copy(new[kvPos+4+uint16(len(key)):], val)
 }
 
-// add a new key to a leaf node
+// LeafInsert copies old into new
+// and inserts a new key to a new, at index idx
+// it doesn't overwrite, but will instead shift the other key/value pairs
+// new should be 2*BTREE_PAGE_SIZE, in case the new key/value is too big
+// and overflows, and hence the caller should split the node.
 func LeafInsert(
 	new BNode, old BNode, idx uint16, key []byte, val []byte,
 ) {
