@@ -13,7 +13,7 @@ import (
 
 type BTree struct {
 	// pointer (a nonzero page number)
-	rootPtr types.PagePtr
+	RootPtr types.PagePtr
 	// interface for managing on-disk pages
 	pageManager pagemanager.PageManager
 }
@@ -57,7 +57,7 @@ func (tree *BTree) insert(bNode bnode.BNode, key []byte, val []byte) bnode.BNode
 		}
 	case bnode.BNODE_NODE:
 		// internal node, insert it to a kid node.
-		nodeInsert(tree, new, bNode, idx, key, val)
+		tree.nodeInsert(new, bNode, idx, key, val)
 	default:
 		panic("bad node!")
 	}
@@ -65,8 +65,8 @@ func (tree *BTree) insert(bNode bnode.BNode, key []byte, val []byte) bnode.BNode
 }
 
 // part of the treeInsert(): KV insertion to an internal node
-func nodeInsert(
-	tree *BTree, new bnode.BNode, node bnode.BNode, idx uint16,
+func (tree *BTree) nodeInsert(
+	new bnode.BNode, node bnode.BNode, idx uint16,
 	key []byte, val []byte,
 ) {
 	kptr := node.GetPtr(idx)
@@ -80,8 +80,9 @@ func nodeInsert(
 	nodeReplaceKidN(tree, new, node, idx, split[:nsplit]...)
 }
 
+// insert a new key or update an existing key
 func (tree *BTree) Insert(key []byte, val []byte) {
-	if tree.rootPtr == constant.NilPagePtr {
+	if tree.RootPtr == constant.NilPagePtr {
 		// create the first node
 		root := make(bnode.BNode, constant.BTREE_PAGE_SIZE)
 		root.SetHeader(bnode.BNODE_LEAF, 2)
@@ -89,12 +90,12 @@ func (tree *BTree) Insert(key []byte, val []byte) {
 		// thus a lookup can always find a containing node.
 		root.CopyPtrAndKV(0, 0, nil, nil)
 		root.CopyPtrAndKV(1, 0, key, val)
-		tree.rootPtr = tree.pageManager.New(root)
+		tree.RootPtr = tree.pageManager.New(root)
 		return
 	}
 
-	rootNode := tree.pageManager.Get(tree.rootPtr)
-	defer tree.pageManager.Del(tree.rootPtr)
+	rootNode := tree.pageManager.Get(tree.RootPtr)
+	defer tree.pageManager.Del(tree.RootPtr)
 	node := tree.insert(rootNode, key, val)
 	nsplit, split := node.Split3()
 	if nsplit > 1 {
@@ -105,9 +106,9 @@ func (tree *BTree) Insert(key []byte, val []byte) {
 			ptr, key := tree.pageManager.New(knode), knode.GetKey(0)
 			root.CopyPtrAndKV(uint16(i), ptr, key, nil)
 		}
-		tree.rootPtr = tree.pageManager.New(root)
+		tree.RootPtr = tree.pageManager.New(root)
 	} else {
-		tree.rootPtr = tree.pageManager.New(split[0])
+		tree.RootPtr = tree.pageManager.New(split[0])
 	}
 }
 
@@ -184,15 +185,20 @@ func nodeDelete(tree *BTree, node bnode.BNode, idx uint16, key []byte) bnode.BNo
 	return new
 }
 
-func (tree *BTree) Delete(key []byte) {
-	if tree.rootPtr == 0 {
-		return
+// delete a key and returns whether the key was there
+func (tree *BTree) Delete(key []byte) bool {
+	if tree.RootPtr == 0 {
+		return false
 	}
-	node := treeDelete(tree, tree.pageManager.Get(tree.rootPtr), key)
+	node := treeDelete(tree, tree.pageManager.Get(tree.RootPtr), key)
 	if len(node) == 0 {
-		tree.pageManager.Del(tree.rootPtr)
-		tree.rootPtr = 0
+		tree.pageManager.Del(tree.RootPtr)
+		tree.RootPtr = constant.NilPagePtr
 	} else {
-		tree.rootPtr = tree.pageManager.New(node)
+		tree.RootPtr = tree.pageManager.New(node)
 	}
+	// TODO: are we sure that the key was there?
+	return true
 }
+
+func (tree *BTree) Get(key []byte) ([]byte, bool)
